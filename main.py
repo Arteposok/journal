@@ -57,7 +57,7 @@ async def start(c: Console) -> None:
 
 async def inspire() -> None:
     #api path https://api.quotable.io
-    url = "https://api.quotable.io/random"
+    url = "http://api.quotable.io/random"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             data: dict[str, str] = await response.json()
