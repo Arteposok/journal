@@ -8,6 +8,7 @@ import os
 import datetime as dt
 import asyncio
 import aiohttp
+import sys
 c: Console = Console()
 
 questions: list[str] = [
@@ -96,4 +97,15 @@ async def save():
 
 
 if __name__ == "__main__":
-    asyncio.run(start(c))
+    try:
+        asyncio.run(start(c))
+    except Exception:
+        c.print()
+        c.log("Exited with an error")
+        show_trace = Prompt.ask("Show error trace?",
+                                default="n",
+                                choices=["Y", "n"])
+        if show_trace == "Y":
+            c.print_exception()
+        else:
+            sys.exit(1)
