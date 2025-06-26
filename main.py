@@ -38,6 +38,15 @@ async def process_ansver(question: str) -> str:
     inp = Prompt.ask(question)
     return f"- {question} \t {inp}"
 
+async def try_to_review(c: Console):
+    past = date - dt.timedelta(weeks=1)
+    filename: str = path.join("journal",f"{past.strftime('%Y-%m-%d')}.md")
+    try:
+        with open(filename, "r") as f:
+            c.print(Markdown(f.read()))
+    except FileNotFoundError:
+        c.print("Could not find an entry from a week ago :(")
+
 async def start(c: Console) -> None:
     c.print(Markdown("# Journal"))
     c.print("This is an [green]interactive[/green] [violet bold]Journal[/violet bold] that lives in your console", justify="center")
@@ -53,14 +62,14 @@ async def start(c: Console) -> None:
         case 2:
             await watch_previous()
         case 3:
-            await inspire()
+            await inspire(c)
 
-async def inspire() -> None:
-    #api path https://api.quotable.io
+async def inspire(c: Console) -> None:
     url = "http://api.quotable.io/random"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            data: dict[str, str] = await response.json()
+    with c.status("Collecting data"):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data: dict[str, str] = await response.json()
     c.print(
         Align.center(Panel.fit(f"`{data['content']}` – {data['author']}")),
     )
@@ -78,7 +87,8 @@ async def watch_previous() -> None:
         c.print("[red bold]Something went wrong, make sure you entered a correct date[/red bold]")
 
 
-async def main(c) -> None:
+async def main(c: Console) -> None:
+    await try_to_review(c)
     c.print(f"[violet bold]today is {date.strftime('%Y-%m-%d')}[/violet bold]",
             justify="center")
     for q in questions:
@@ -99,6 +109,8 @@ async def save():
 if __name__ == "__main__":
     try:
         asyncio.run(start(c))
+    except (KeyboardInterrupt, EOFError):
+        sys.exit(0)
     except Exception:
         c.print()
         c.log("Exited with an error")
