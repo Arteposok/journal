@@ -43,7 +43,7 @@ async def start(c: Console) -> None:
     for k,v in options.items():
         c.print(f"\t {k} - {v}")
 
-    opt: int = IntPrompt.ask("Start a new entry?",
+    opt: int = IntPrompt.ask("Choose an option",
                         default=1,
                         choices=list(map(str, options.keys())))
     match opt:
