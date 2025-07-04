@@ -1,14 +1,14 @@
 from rich.console import Console
-from rich.prompt import Prompt, IntPrompt
+from rich.prompt import Prompt
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.align import Align
 import os.path as path
 import os
 import datetime as dt
-import asyncio
-import aiohttp
 import sys
+import click
+import httpx
 c: Console = Console()
 
 questions: list[str] = [
@@ -28,17 +28,15 @@ lines: list[str] = [
     "",
 ]
 
-options: dict[int, str] = {
-    1 : "write",
-    2 : "review",
-    3 : "inspire"
-}
+@click.group()
+def cli():
+    pass
 
-async def process_ansver(question: str) -> str:
+def process_ansver(question: str) -> str:
     inp = Prompt.ask(question)
     return f"- {question} \t {inp}"
 
-async def try_to_review(c: Console):
+def try_to_review(c: Console):
     past = date - dt.timedelta(weeks=1)
     filename: str = path.join("journal",f"{past.strftime('%Y-%m-%d')}.md")
     try:
@@ -47,38 +45,19 @@ async def try_to_review(c: Console):
     except FileNotFoundError:
         c.print("Could not find an entry from a week ago :(")
 
-async def start(c: Console) -> None:
-    c.print(Markdown("# Journal"))
-    c.print("This is an [green]interactive[/green] [violet bold]Journal[/violet bold] that lives in your console", justify="center")
-    for k,v in options.items():
-        c.print(f"\t {k} - {v}")
-
-    opt: int = IntPrompt.ask("Choose an option",
-                        default=1,
-                        choices=list(map(str, options.keys())))
-    match opt:
-        case 1:
-            await main(c)
-        case 2:
-            await watch_previous()
-        case 3:
-            await inspire(c)
-
-async def inspire(c: Console) -> None:
+@cli.command()
+def inspire() -> None:
     url = "http://api.quotable.io/random"
     with c.status("Collecting data"):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                data: dict[str, str] = await response.json()
+        data = httpx.get(url).json()
     c.print(
         Align.center(Panel.fit(f"`{data['content']}` – {data['author']}")),
     )
 
-async def watch_previous() -> None:
-    year: int = IntPrompt.ask("What year was it?")
-    month: int = IntPrompt.ask("What month was it?")
-    day: int = IntPrompt.ask("What day was it?")
-    date = dt.date(year, month, day)
+@cli.command()
+@click.argument("dates")
+def review(dates: str) -> None:
+    date = dt.datetime.strptime(dates, "%Y-%m-%d").date()
     filename: str = path.join("journal",f"{date.strftime('%Y-%m-%d')}.md")
     try:
         with open(filename, "r") as f:
@@ -86,29 +65,29 @@ async def watch_previous() -> None:
     except FileNotFoundError:
         c.print("[red bold]Something went wrong, make sure you entered a correct date[/red bold]")
 
-
-async def main(c: Console) -> None:
-    await try_to_review(c)
+@cli.command()
+def journal() -> None:
+    try_to_review(c)
     c.print(f"[violet bold]today is {date.strftime('%Y-%m-%d')}[/violet bold]",
             justify="center")
     for q in questions:
-        line: str = await process_ansver(q)
+        line: str = process_ansver(q)
         lines.append(line)
-    lines.append(await process_ansver("Would you like to note down or summarize something about this day?"))
-    await save()
+    lines.append(process_ansver("Would you like to note down or summarize something about this day?"))
+    save()
 
-async def save():
+def save():
     try:
         with open(path.join("journal",f"{date.strftime('%Y-%m-%d')}.md"), "w+") as f:
             f.write("\n".join(lines))
     except FileNotFoundError:
         os.makedirs("journal", exist_ok=True)
-        await save()
+        save()
 
 
 if __name__ == "__main__":
     try:
-        asyncio.run(start(c))
+        cli()
     except (KeyboardInterrupt, EOFError):
         sys.exit(0)
     except Exception:
