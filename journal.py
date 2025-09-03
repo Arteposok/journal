@@ -21,14 +21,10 @@ import httpx
 c: Console = Console()
 
 questions: list[str] = [
-    "How would you describe your day?",
-    "How did you feel today?",
-    "How would you rate your day, 1 to 10?",
+    "Rate your day 1 to 10?",
     "What did you learn today?",
-    "Who made your day?",
-    "Is it better than yesterday?",
-    "What did you think about today that you remembered?",
-    "What do you think you're missing right now? (like an emotion)",
+    "How are you willing to use it?",
+    "What emotion did you feel the most today?",
 ]
 date = dt.datetime.today().date()
 lines: list[str] = [
@@ -115,14 +111,12 @@ if __name__ == "__main__":
         c.print(
             Align.center(
                 Panel.fit(
-                    '''
-Welcome to the mental health journaling tool :)
-This is a command line tool designed to help you
-to keep track of your feelings.
-                    ''',
+                    """
+This is a handy script for keeping track of yourself
+                    """,
                     title="Welcome",
                     title_align="left",
-                    padding=(0,2),
+                    padding=(0, 2),
                 )
             )
         )
